@@ -1,17 +1,19 @@
 import { createReadStream, statSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { dirname, extname, join, normalize, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createApp } from "./app";
 import { loadConfig } from "./config";
 import { DevZend } from "./devzend";
 import { startKeepAlive } from "./keepalive";
 import { err, readBody, send } from "./http";
-import { eventLog } from "./store";
+import { eventLog, usableDataDir } from "./store";
 import { verifyToken } from "./token";
 import { RealZend } from "./zend";
 
 const cfg = loadConfig();
-const log = eventLog(cfg.dataDir);
+cfg.dataDir = usableDataDir(cfg.dataDir) ?? "";
+const log = eventLog(cfg.dataDir || null);
 const dev = cfg.dev
   ? new DevZend((t) => {
       const c = verifyToken(cfg.sessionSecret, t);
@@ -27,7 +29,20 @@ const TYPES: Record<string, string> = {
   ".webmanifest": "application/manifest+json", ".txt": "text/plain; charset=utf-8",
 };
 
-const webRoot = cfg.webDir ? resolve(cfg.webDir) : null;
+/** WEB_DIR if it holds the built page; else the page next to this bundle (`/app/web` in the image). */
+function findWebRoot(): string | null {
+  const has = (d: string) => statSync(join(d, "index.html"), { throwIfNoEntry: false })?.isFile() ?? false;
+  const wanted = cfg.webDir ? resolve(cfg.webDir) : null;
+  if (wanted && has(wanted)) return wanted;
+  const bundled = resolve(dirname(fileURLToPath(import.meta.url)), "../web");
+  if (has(bundled)) {
+    if (wanted) console.warn(JSON.stringify({ at: "web_dir_fallback", wanted, using: bundled }));
+    return bundled;
+  }
+  if (wanted) console.warn(JSON.stringify({ at: "web_dir_missing", wanted }));
+  return null;
+}
+const webRoot = findWebRoot();
 const pageHeaders = {
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",

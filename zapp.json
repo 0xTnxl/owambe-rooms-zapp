@@ -2,7 +2,7 @@
   "app": "owambe",
   "name": "Owambe Rooms",
   "version": "0.1.0",
-  "origins": ["https://"],
+  "origins": ["https://[OWAMBE_ORIGINS]"],
   "entry": "/",
   "visibility": "private",
   "permissions": ["post_card", "connect"],

@@ -1,7 +1,35 @@
-import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { accessSync, appendFileSync, constants, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 export type Log = (type: string, fields: Record<string, unknown>) => void;
+
+function writable(dir: string): boolean {
+  try {
+    mkdirSync(dir, { recursive: true });
+    accessSync(dir, constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The data folder to use: `dir` if it can be written, otherwise a temp folder. A bad DATA_DIR
+ * (read-only, relative to a folder we don't own) must never stop the game from starting.
+ */
+export function usableDataDir(dir: string | null): string | null {
+  if (!dir) return null;
+  const want = resolve(dir);
+  if (writable(want)) return want;
+  const fallback = join(tmpdir(), "owambe-data");
+  if (writable(fallback)) {
+    console.warn(JSON.stringify({ at: "data_dir_fallback", wanted: want, using: fallback }));
+    return fallback;
+  }
+  console.warn(JSON.stringify({ at: "data_dir_unavailable", wanted: want }));
+  return null;
+}
 
 /**
  * Append-only JSON lines in `data/events.jsonl`: metrics and reports (PRD success metrics).
@@ -9,7 +37,6 @@ export type Log = (type: string, fields: Record<string, unknown>) => void;
  */
 export function eventLog(dir: string | null): Log {
   if (!dir) return () => {};
-  mkdirSync(dir, { recursive: true });
   const file = join(dir, "events.jsonl");
   return (type, fields) => {
     try {
@@ -45,8 +72,13 @@ export class AvoidStore {
     if (a === b || this.has(a, b)) return;
     this.pairs.add(pairKey(a, b));
     if (!this.file) return;
-    const tmp = `${this.file}.tmp`;
-    writeFileSync(tmp, JSON.stringify([...this.pairs]));
-    renameSync(tmp, this.file);
+    // Kept in memory either way; a failed write only loses it on restart.
+    try {
+      const tmp = `${this.file}.tmp`;
+      writeFileSync(tmp, JSON.stringify([...this.pairs]));
+      renameSync(tmp, this.file);
+    } catch (e) {
+      console.error(JSON.stringify({ at: "avoid_save_failed", error: String(e) }));
+    }
   }
 }

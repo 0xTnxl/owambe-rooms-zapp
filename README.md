@@ -47,10 +47,28 @@ real keys unless `OWAMBE_DEV=1`.
 
 ## Deploy
 
-1. Build, then run `node server/dist/main.js` with the env in `.env.example`. Set
-   `WEB_DIR=web/dist` so one origin serves both the page and the API. Run a single process: v1
-   keeps live state in memory.
-2. Register the app and upload the manifest for your origin:
+The `Dockerfile` works on any container host. It serves the page and the API from one origin on
+`$PORT` (default 8080) and checks health at `/healthz`. Run exactly one instance: v1 keeps live
+rounds in memory.
+
+**Render** (`render.yaml`): Dashboard → New → Blueprint → this repo. Render generates
+`SESSION_SECRET` and asks for `ZEND_APP_KEY` and `ZEND_WEBHOOK_SECRET`.
+
+**Staying awake.** Render's free plan sleeps a service after 15 minutes without inbound requests,
+which would kill a live round and give the next player a slow cold start. Two things stop that:
+
+- `server/src/keepalive.ts` calls the server's own public URL every 10 minutes
+  (`RENDER_EXTERNAL_URL` on Render, or `KEEPALIVE_URL` anywhere else; `KEEPALIVE_MINS=0` turns it
+  off). It logs only failures.
+- `.github/workflows/keepalive.yml` pings `/healthz` every 10 minutes from outside, to wake the
+  service if it ever sleeps anyway. Set the repo variable `OWAMBE_URL` to turn it on.
+
+On a paid Render plan the service never sleeps, and neither is needed.
+
+Steps:
+
+1. Deploy the service, then note its URL (e.g. `https://owambe.onrender.com`).
+2. Register the app and upload the manifest for that origin:
    ```sh
    OWAMBE_ORIGIN=owambe.example.com pnpm -s manifest > manifest.json
    curl -X PUT $ZEND/api/zend/v2/apps/$APP_ID/manifest -H "Authorization: Bearer $TOKEN" -d @manifest.json
