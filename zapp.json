@@ -1,10 +1,10 @@
 {
   "app": "owambe",
   "name": "Owambe Rooms",
-  "version": "0.1.0",
-  "origins": ["https://[OWAMBE_ORIGINS]"],
+  "version": "0.2.0",
+  "origins": ["https://owambe-rooms-zapp.onrender.com"],
   "entry": "/",
-  "visibility": "private",
+  "visibility": "public",
   "permissions": ["post_card", "connect"],
   "cardTypes": ["result", "invite"],
   "chatActions": [
@@ -32,7 +32,12 @@
   },
   "custody": "contract",
   "results": "app",
-  "webhook": "https://OWAMBE_ORIGIN/zend/webhook",
+  "webhook": "https://owambe-rooms-zapp.onrender.com/zend/webhook",
   "description": "Give away your play money fast in a room of strangers. Biggest bag at the end loses.",
-  "category": "games"
+  "category": "games",
+  "developer": {
+    "name": "Zend",
+    "support": "support@usezend.app",
+    "privacy": "https://www.usezend.app/privacy"
+  }
 }
