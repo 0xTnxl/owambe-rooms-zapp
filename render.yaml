@@ -1,0 +1,30 @@
+# Render Blueprint: one Docker web service serves the page and the game server from one origin.
+# Dashboard → New → Blueprint → pick this repo. Render asks for the `sync: false` values once.
+services:
+  - type: web
+    name: owambe
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Closest Render region to Lagos.
+    region: frankfurt
+    plan: free
+    # v1 keeps live rounds in memory: exactly one instance.
+    numInstances: 1
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ZEND_APP_KEY
+        sync: false
+      - key: ZEND_WEBHOOK_SECRET
+        sync: false
+      - key: ZEND_API
+        value: https://api.usezend.app
+      - key: ZEND_APP_SLUG
+        value: owambe
+      - key: FRAME_ANCESTORS
+        value: https://app.usezend.app
+      # The server pings its own RENDER_EXTERNAL_URL every 10 minutes (src/keepalive.ts).
+      - key: KEEPALIVE_MINS
+        value: "10"

@@ -4,6 +4,7 @@ import { extname, join, normalize, resolve, sep } from "node:path";
 import { createApp } from "./app";
 import { loadConfig } from "./config";
 import { DevZend } from "./devzend";
+import { startKeepAlive } from "./keepalive";
 import { err, readBody, send } from "./http";
 import { eventLog } from "./store";
 import { verifyToken } from "./token";
@@ -114,12 +115,14 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 const timer = setInterval(() => app.tick(), 1000);
+const stopKeepAlive = cfg.dev ? null : startKeepAlive(process.env, log);
 server.listen(cfg.port, () => {
   console.log(JSON.stringify({ at: "listening", port: cfg.port, dev: cfg.dev, web: webRoot }));
 });
 
 function shutdown() {
   clearInterval(timer);
+  stopKeepAlive?.();
   app.stop();
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 3000).unref();

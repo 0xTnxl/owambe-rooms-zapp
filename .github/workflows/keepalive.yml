@@ -1,0 +1,21 @@
+# Backup to the server's own keep-alive (server/src/keepalive.ts): if the service ever sleeps
+# (crash loop, a missed beat), this wakes it. Set the repo variable OWAMBE_URL, e.g.
+# https://owambe.onrender.com. GitHub runs schedules late at busy times, so this is a backup only.
+name: keepalive
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    if: vars.OWAMBE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping /healthz
+        run: |
+          for i in 1 2 3; do
+            if curl -fsS --max-time 60 -A owambe-keepalive "${{ vars.OWAMBE_URL }}/healthz?ping=actions"; then exit 0; fi
+            sleep 10
+          done
+          echo "::warning::Owambe didn't answer /healthz"

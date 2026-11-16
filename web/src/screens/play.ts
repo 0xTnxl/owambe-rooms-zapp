@@ -15,7 +15,7 @@ const REPORT_REASONS = [
 ];
 
 /** Always on screen wherever ₦ amounts are. */
-export const notReal = () => h("p", { class: "notreal" }, "₦ here is play money. Not real, can't be cashed out.");
+export const notReal = () => h("p", { class: "notreal" }, "₦ here is play money. It's not real.");
 
 const secs = (ms: number) => Math.max(0, Math.ceil(ms / 1000));
 const clock = (ms: number) => {

@@ -153,10 +153,16 @@ botAct(round, botId, rng, now): action | null
     are capped;
   - auction banner with **Bid +₦500M**, **+₦5B** and **Max**;
   - reactions row.
-- **Copy and amounts:** amounts read 2M, 1.5B, 50B, never with ₦. Zend's copy rules keep ₦ for
-  money that really is Naira, and the PRD's legal position needs play money to look worthless.
-  The HUD labels the bag "play money", and anything leaving the game says "50B in play money".
-  User-facing copy follows the Zend rules: no crypto words.
+- **Copy and amounts:** inside the game, amounts read ₦2M, ₦1.5B, ₦50B (`formatPlayNaira`), as
+  in Lagos Life. Wherever ₦ shows, the screen says it's not real:
+  - a yellow "₦ here is play money. It's not real." line on the round, vote and results screens;
+  - "play money · not real" under the player's bag;
+  - the home screen says it can't be cashed out, sold or sent;
+  - share text says "(not real)".
+
+  Text that shows up inside Zend itself (feed cards, the chat line from a friend add, the
+  chat-tray invite card) sits next to real ₦ payments, so it uses `formatPlay` with no ₦:
+  "50B in play money". User-facing copy follows the Zend rules: no crypto words.
 - **Zend calls:**
   - `identity.get`, `live.join` and `live.leave`;
   - `people.connect`, `people.chat`, `share`, `postCard`;
