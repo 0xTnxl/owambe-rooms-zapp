@@ -93,8 +93,10 @@ botAct(round, botId, rng, now): action | null
 | `POST /api/session` | – | `{ appSession }` → `verifySession` → signed game token + player |
 | `POST /api/play` | game | `{ mode: "public" \| "room" \| "again", code?, round? }` → ticket |
 | `POST /api/rooms` | game | New private room `{ code, link }`, joined as host |
-| `POST /api/rooms/:code/start` | host | Start now, bots fill |
-| `GET /api/lobby?ticket&v` | game | Long-poll lobby: members, status, `interactionId` when started |
+| `GET /api/lobby?v` | game | Long-poll the player's own lobby (one per player): members, status, `roundId` when started |
+| `POST /api/rooms/start` | host | Start the host's room now; bots fill |
+| `GET /api/config`, `GET /api/me` | –, game | Dev flag and slug; who the session is |
+| `POST /api/dev/session` | dev only | `{ name }` → session, when `OWAMBE_DEV=1` |
 | `POST /api/leave` | game | Leave queue, lobby or round |
 | `POST /api/vote` | game | `{ round, for }` |
 | `POST /api/report` | game | `{ round, target, reason }` |
@@ -134,7 +136,8 @@ botAct(round, botId, rng, now): action | null
 { t: "snap", v, now, round: PublicRound }        // full state
 { t: "ev", v, now, ev: Event[], bags: Record<seat, number>, lead: seat }
 { t: "err", to: seat, code }                     // CAP_REACHED, NOT_ENOUGH, AWAY, TOO_LOW, …
-{ t: "added", from: seat, to: seat }             // friend-add hint (relayed)
+// friend adds ride in `ev.added` and `snap.added` as [from, to] pairs. They come from the page's
+// `{t:"added"}` (sender stamped by Zend) and from the `people.connected` webhook.
 // page → server
 { t: "gift", to, item, n } | { t: "bid", amount, n } | { t: "react", r, n } | { t: "added", to }
 ```
@@ -150,8 +153,9 @@ botAct(round, botId, rng, now): action | null
     are capped;
   - auction banner with **Bid +₦500M**, **+₦5B** and **Max**;
   - reactions row.
-- **Copy and amounts:** amounts read ₦2M, ₦1.5B. The HUD always carries a "play money" label.
-  Anything leaving the game (cards, share text, chat notes) says "50B in play money" with no ₦.
+- **Copy and amounts:** amounts read 2M, 1.5B, 50B, never with ₦. Zend's copy rules keep ₦ for
+  money that really is Naira, and the PRD's legal position needs play money to look worthless.
+  The HUD labels the bag "play money", and anything leaving the game says "50B in play money".
   User-facing copy follows the Zend rules: no crypto words.
 - **Zend calls:**
   - `identity.get`, `live.join` and `live.leave`;
@@ -161,6 +165,13 @@ botAct(round, botId, rng, now): action | null
   `NOT_IN_ZEND` switches to Landing. `UNKNOWN_METHOD` (an older Zend) hides that button.
 - **Budget:** about 25 KB of JS for engine and UI, plus 8 KB of CSS. System font, emoji for item
   art, no images.
+
+## Dev mode (`OWAMBE_DEV=1`)
+
+`server/src/devzend.ts` stands in for Zend locally, with dev sign-in and rooms at
+`/dev/live/:id?token=`. It keeps the rules that matter: only participants can join, the host
+stamps `from`, frames match `WsServerFrame`, and rooms close on `done`. The page uses it when it's
+outside Zend and the server says `dev`.
 
 ## Manifest (`zapp.json`)
 

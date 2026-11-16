@@ -1,0 +1,18 @@
+{
+  "name": "owambe",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.24.0",
+  "engines": { "node": ">=20.19" },
+  "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "build": "pnpm --filter @owambe/web build && pnpm --filter @owambe/server build",
+    "dev:server": "pnpm --filter @owambe/server dev",
+    "dev:web": "pnpm --filter @owambe/web dev",
+    "start": "pnpm --filter @owambe/server start",
+    "metrics": "pnpm --filter @owambe/server metrics",
+    "manifest": "node scripts/manifest.mjs"
+  }
+}

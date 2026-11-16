@@ -38,7 +38,7 @@ The defaults below are in `server/src/config.ts` and are to be retuned in playte
 |---|---|
 | Round length | 120 s of play (`ROUND_SECS`), then a 20 s vote and 45 s of results |
 | Start, prices, cap | ₦50B start, PRD items and prices, 5-in-a-row cap |
-| Ties for biggest bag | Of the tied players, whoever received play money most recently loses |
+| Ties for biggest bag | Of the tied players, whoever received play money most recently loses. If none received any, a seeded random pick |
 | Label bots | Yes, a small "bot" tag (`LABEL_BOTS`) |
 | Languages | English, with Nigerian party flavour in the copy. Pidgin later |
 | Room chat | Preset reactions and lines only, no free text in v1 (safety, no moderation queue for text) |
@@ -73,7 +73,9 @@ The defaults below are in `server/src/config.ts` and are to be retuned in playte
 
 1. Every seat starts with ₦50B of play money.
 2. **Gift:** pick a person, pick an item. The giver's bag drops by the price and the receiver's
-   rises by the same. A gift needs a bag of at least the price. Items:
+   rises by the same. A gift needs a bag of at least the price, not counting the giver's top bid
+   in an open auction (which is held back so it can always be paid). Prices are in play money,
+   shown without ₦. Items:
    - jollof ₦2M
    - gold chain ₦500M
    - danfo ₦1B

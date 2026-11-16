@@ -1,0 +1,20 @@
+{
+  "name": "@owambe/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/size.mjs",
+    "typecheck": "tsc -p .",
+    "test": "echo 'web: no unit tests (rules are tested in @owambe/engine)'"
+  },
+  "dependencies": {
+    "@owambe/engine": "workspace:*",
+    "@zendfi/appkit": "link:../../zend-appkit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.1.0"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "app": "owambe",
+  "name": "Owambe Rooms",
+  "version": "0.1.0",
+  "origins": ["https://OWAMBE_ORIGIN"],
+  "entry": "/",
+  "visibility": "private",
+  "permissions": ["post_card", "connect"],
+  "cardTypes": ["result", "invite"],
+  "chatActions": [
+    { "id": "play", "label": "Play Owambe", "sheet": "/", "interaction": "invite" }
+  ],
+  "interactionTypes": {
+    "round": {
+      "states": ["playing", "voting", "results", "done", "expired"],
+      "initial": "playing",
+      "transitions": {
+        "playing": [{ "to": "voting", "serverOnly": true }, { "to": "expired", "serverOnly": true }],
+        "voting": [{ "to": "results", "serverOnly": true }, { "to": "expired", "serverOnly": true }],
+        "results": [{ "to": "done", "serverOnly": true }, { "to": "expired", "serverOnly": true }]
+      },
+      "terminal": ["done", "expired"]
+    },
+    "invite": {
+      "states": ["sent", "joined", "expired"],
+      "initial": "sent",
+      "transitions": {
+        "sent": [{ "to": "joined", "serverOnly": true }, { "to": "expired", "serverOnly": true }]
+      },
+      "terminal": ["joined", "expired"]
+    }
+  },
+  "custody": "contract",
+  "results": "app",
+  "webhook": "https://OWAMBE_ORIGIN/zend/webhook",
+  "description": "Give away your play money fast in a room of strangers. Biggest bag at the end loses.",
+  "category": "games"
+}
