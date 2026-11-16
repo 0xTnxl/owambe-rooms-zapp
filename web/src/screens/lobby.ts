@@ -5,7 +5,7 @@ import { avatar, first, h, paint, toast } from "../h";
 import { appLink, share } from "../zend";
 
 export async function inviteShare(code: string): Promise<void> {
-  const r = await share("Join my Owambe room 🎉 Spend your play money before the timer ends. Biggest bag loses.", appLink({ room: code }));
+  const r = await share("Join my Owambe room 🎉 Everyone gets ₦50B in play money (not real). Spend it before the timer ends. Biggest bag loses.", appLink({ room: code }));
   if (r === "copied") toast("Link copied");
   if (r === "failed") toast("Couldn't share. Tell them the code instead.");
 }

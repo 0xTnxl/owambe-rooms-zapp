@@ -31,8 +31,7 @@ on are in `zendfi/.kiro/specs/owambe-core/`.
 
 ## Develop
 
-Requires Node 20.19+ and pnpm 10. `@zendfi/appkit` is linked from `../zend-appkit` until 0.6.0 is
-published to npm. After that, change both `link:` entries to `^0.6.0`.
+Requires Node 20.19+ and pnpm 10. Uses `@zendfi/appkit` ^0.6.0 from npm.
 
 ```sh
 pnpm install

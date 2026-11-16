@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@owambe/engine": "workspace:*",
-    "@zendfi/appkit": "link:../../zend-appkit"
+    "@zendfi/appkit": "^0.6.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

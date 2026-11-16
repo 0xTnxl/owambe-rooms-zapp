@@ -23,8 +23,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/engine
       '@zendfi/appkit':
-        specifier: link:../../zend-appkit
-        version: link:../../zend-appkit
+        specifier: ^0.6.0
+        version: 0.6.0
       ws:
         specifier: ^8.18.3
         version: 8.23.0
@@ -54,8 +54,8 @@ importers:
         specifier: workspace:*
         version: link:../packages/engine
       '@zendfi/appkit':
-        specifier: link:../../zend-appkit
-        version: link:../../zend-appkit
+        specifier: ^0.6.0
+        version: 0.6.0
     devDependencies:
       typescript:
         specifier: ^5.9.3
@@ -554,6 +554,9 @@ packages:
 
   '@vitest/utils@3.2.7':
     resolution: {integrity: sha512-x6BDOd7dyo3PFLY3I9/HJ25X/6OurhGXk2/B9gOZNPF7XDVjeBK4k01lQE5uvDpbuheErh91qYuE1E2OEjK3Rw==}
+
+  '@zendfi/appkit@0.6.0':
+    resolution: {integrity: sha512-CtuncXpRYLN7HdA+HOGRb5rzNFg0eqpIDh6Y+qeidO+o+45LFfYThieqqy5gkwBlC+wZFNs0D3y5ghOyNJ3Qxg==}
 
   assertion-error@2.0.1:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
@@ -1095,6 +1098,8 @@ snapshots:
       '@vitest/pretty-format': 3.2.7
       loupe: 3.2.1
       tinyrainbow: 2.0.0
+
+  '@zendfi/appkit@0.6.0': {}
 
   assertion-error@2.0.1: {}
 

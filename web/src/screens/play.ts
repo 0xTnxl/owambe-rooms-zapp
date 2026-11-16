@@ -1,4 +1,4 @@
-import { formatPlay, ITEMS, type PublicRound, type PublicSeat, REACTIONS } from "@owambe/engine";
+import { formatPlay, formatPlayNaira as naira, ITEMS, type PublicRound, type PublicSeat, REACTIONS } from "@owambe/engine";
 import { api, errorText, type LobbyView } from "../api";
 import type { Ctx } from "../ctx";
 import { type Game, PracticeGame } from "../game";
@@ -13,6 +13,9 @@ const REPORT_REASONS = [
   { label: "Looks under age", value: "underage" },
   { label: "Something else", value: "other" },
 ];
+
+/** Always on screen wherever ₦ amounts are. */
+export const notReal = () => h("p", { class: "notreal" }, "₦ here is play money. Not real, can't be cashed out.");
 
 const secs = (ms: number) => Math.max(0, Math.ceil(ms / 1000));
 const clock = (ms: number) => {
@@ -86,7 +89,7 @@ export function play(ctx: Ctx, game: Game): () => void {
       "div",
       {
         class: cls, role: "button", tabindex: 0,
-        "aria-label": `${s.id === me.id ? "You" : s.name}, ${formatPlay(s.bag)} play money`,
+        "aria-label": `${s.id === me.id ? "You" : s.name}, ${naira(s.bag)} play money`,
         onclick: () => {
           if (!playing || s.id === me.id || s.away) return;
           target = target === s.id ? null : s.id;
@@ -96,7 +99,7 @@ export function play(ctx: Ctx, game: Game): () => void {
       r.lead === s.id ? h("span", { class: "crown" }, "👑") : null,
       avatar(s, 48),
       h("span", { class: "name" }, s.id === me.id ? "You" : first(s.name), s.bot ? h("small", { class: "bot" }, "bot") : null),
-      h("span", { class: "bag" }, formatPlay(s.bag)),
+      h("span", { class: "bag" }, naira(s.bag)),
       streak ? h("span", { class: "streak", title: "Gifts in a row" }, `${streak}/${r.cap}`) : null,
       s.away ? h("span", { class: "awaytag" }, "stepped out") : null,
       showFloat ? h("span", { class: "float" }, float[0]) : null,
@@ -120,12 +123,12 @@ export function play(ctx: Ctx, game: Game): () => void {
       { class: "auction" },
       h("div", { class: "row" }, h("b", null, "🔨 Auction"), h("span", { class: "timer small" }, `${left}s`)),
       h("p", { class: "lot" }, a.lot),
-      h("p", { class: "fine" }, a.high ? `Top bid ${formatPlay(a.high.amount)} by ${seatName(r, a.high.seat)}. The winner's play money leaves the game.` : `No bids yet. Start at ${formatPlay(base)}. The winner's play money leaves the game.`),
+      h("p", { class: "fine" }, a.high ? `Top bid ${naira(a.high.amount)} by ${seatName(r, a.high.seat)}. The winner's play money leaves the game.` : `No bids yet. Start at ${naira(base)}. The winner's play money leaves the game.`),
       h(
         "div",
         { class: "row bids" },
-        h("button", { class: "btn small", disabled: !can(base), onclick: bid(base) }, `Bid ${formatPlay(base)}`),
-        h("button", { class: "btn small", disabled: !can(big), onclick: bid(big) }, `Bid ${formatPlay(big)}`),
+        h("button", { class: "btn small", disabled: !can(base), onclick: bid(base) }, `Bid ${naira(base)}`),
+        h("button", { class: "btn small", disabled: !can(big), onclick: bid(big) }, `Bid ${naira(big)}`),
         h("button", { class: "btn small hot", disabled: !can(mine.bag), onclick: bid(mine.bag) }, "All in"),
       ),
     );
@@ -144,8 +147,8 @@ export function play(ctx: Ctx, game: Game): () => void {
         "div",
         { class: "items" },
         ITEMS.map((i) =>
-          h("button", { class: "item", disabled: capped || i.price > mine.bag - held, onclick: () => game.gift(t.id, i.id), "aria-label": `${i.name}, ${formatPlay(i.price)}` },
-            h("span", { class: "emoji" }, i.emoji), h("span", null, i.name), h("b", null, formatPlay(i.price))),
+          h("button", { class: "item", disabled: capped || i.price > mine.bag - held, onclick: () => game.gift(t.id, i.id), "aria-label": `${i.name}, ${naira(i.price)}` },
+            h("span", { class: "emoji" }, i.emoji), h("span", null, i.name), h("b", null, naira(i.price))),
         ),
       ),
     );
@@ -168,6 +171,7 @@ export function play(ctx: Ctx, game: Game): () => void {
           ? h("span", { class: `leadpill${leader.id === me.id ? " mine" : ""}` }, leader.id === me.id ? "👑 Biggest bag: YOU. Give it away!" : `👑 Biggest bag: ${first(leader.name)}`)
           : null,
       ),
+      notReal(),
       game.state.connection === "reconnecting" ? h("p", { class: "banner" }, "Reconnecting…") : null,
       h("ul", { class: "feed" }, game.state.feed.map((f) => h("li", null, f.text))),
       h("div", { class: "seats" }, r.seats.map((s) => seat(r, s, mine))),
@@ -176,7 +180,7 @@ export function play(ctx: Ctx, game: Game): () => void {
       h(
         "footer",
         { class: "mine" },
-        h("div", null, h("small", null, "Your bag"), h("b", { class: "big-bag" }, formatPlay(mine?.bag ?? 0)), h("small", { class: "pm" }, "play money")),
+        h("div", null, h("small", null, "Your bag"), h("b", { class: "big-bag" }, naira(mine?.bag ?? 0)), h("small", { class: "pm" }, "play money · not real")),
         game.state.error ? h("p", { class: "err" }, game.state.error) : h("p", { class: "fine" }, "Biggest bag at the end loses."),
         h("div", { class: "reactions" }, REACTIONS.map((x) => h("button", { class: "react", onclick: () => game.react(x) }, x))),
         h("button", { class: "link", onclick: leaveRound }, "Leave round"),
@@ -199,7 +203,8 @@ export function play(ctx: Ctx, game: Game): () => void {
     return h(
       "section",
       { class: "screen vote" },
-      loser ? h("p", { class: "lost-line" }, `😂 ${loser.id === me.id ? "You" : first(loser.name)} lost, left holding ${formatPlay(loser.bag)}`) : null,
+      loser ? h("p", { class: "lost-line" }, `😂 ${loser.id === me.id ? "You" : first(loser.name)} lost, left holding ${naira(loser.bag)}`) : null,
+      notReal(),
       h("h2", null, "Who was the funniest?"),
       h("p", { class: "status" }, `${secs(r.voteEnd - game.now())}s · ${r.voted.length} of ${humans} voted`),
       h(
@@ -228,6 +233,7 @@ export function play(ctx: Ctx, game: Game): () => void {
     const mine = r.seats.find((x) => x.id === me.id);
     const gave = mine?.gave[s.id] ?? 0;
     const where = game.state.code ? `Met in room ${game.state.code}.` : "Met in an Owambe room.";
+    // This note becomes a line in their Zend chat, next to real payments: no ₦ there.
     const extra = gave ? ` ${first(me.name)} gave ${first(s.name)} ${formatPlay(gave)} in play money.` : "";
     const note = (where + extra).length <= 80 ? where + extra : where;
     friend[s.id] = "adding";
@@ -271,7 +277,7 @@ export function play(ctx: Ctx, game: Game): () => void {
         const theyAdded = added.some(([a, b]) => a === s.id && b === me.id);
         const gaveThem = mine?.gave[s.id] ?? 0;
         const gaveMe = s.gave[me.id] ?? 0;
-        const line = [gaveThem && `You gave them ${formatPlay(gaveThem)}`, gaveMe && `They gave you ${formatPlay(gaveMe)}`].filter(Boolean).join(" · ");
+        const line = [gaveThem && `You gave them ${naira(gaveThem)}`, gaveMe && `They gave you ${naira(gaveMe)}`].filter(Boolean).join(" · ");
         return h(
           "div",
           { class: "friend" },
@@ -311,6 +317,7 @@ export function play(ctx: Ctx, game: Game): () => void {
         interactionId: game.roundId, template: "result", placement: "feed", idempotencyKey: `${game.roundId}:feed:${me.id}`,
         slots: {
           title: `${first(loser.name)} lost Owambe Rooms`.slice(0, 80),
+          // Shown in the Zend feed, next to real payments: no ₦ there.
           subtitle: `Left holding ${formatPlay(loser.bag)} in play money.${funny.length ? ` Funniest: ${funny.join(", ")}.` : ""}`.slice(0, 140),
           emoji: "🎉",
           buttons: [{ label: "Play Owambe", action: "open_sheet", path: "/" }],
@@ -332,7 +339,7 @@ export function play(ctx: Ctx, game: Game): () => void {
     const name = (id: string) => (id === me.id ? "You" : first(r.seats.find((s) => s.id === id)?.name ?? ""));
     const humans = r.seats.filter((s) => isHuman(s.id)).length;
     const shareResult = async () => {
-      const out = await share(`${loser.id === me.id ? "I" : first(loser.name)} lost Owambe Rooms, left holding ${formatPlay(loser.bag)} in play money 😂 Come and play.`, appLink());
+      const out = await share(`${loser.id === me.id ? "I" : first(loser.name)} lost Owambe Rooms, left holding ${naira(loser.bag)} in play money (not real) 😂 Come and play.`, appLink());
       if (out === "copied") toast("Link copied");
     };
     return h(
@@ -344,15 +351,16 @@ export function play(ctx: Ctx, game: Game): () => void {
         h("div", { class: "boom" }, "😂"),
         avatar(loser, 72),
         h("h2", null, loser.id === me.id ? "You lost!" : `${first(loser.name)} lost!`),
-        h("p", null, `Left holding ${formatPlay(loser.bag)} in play money`),
+        h("p", null, `Left holding ${naira(loser.bag)} in play money`),
       ),
       h(
         "div",
         { class: "awards" },
-        res.generousId ? h("div", null, h("span", null, "💸"), h("b", null, name(res.generousId)), h("small", null, `Most generous · gave ${formatPlay(res.generousGiven)}`)) : null,
+        res.generousId ? h("div", null, h("span", null, "💸"), h("b", null, name(res.generousId)), h("small", null, `Most generous · gave ${naira(res.generousGiven)}`)) : null,
         res.funniestIds.length ? h("div", null, h("span", null, "🤣"), h("b", null, res.funniestIds.map(name).join(" & ")), h("small", null, "Funniest")) : null,
-        res.burned ? h("div", null, h("span", null, "🔨"), h("b", null, formatPlay(res.burned)), h("small", null, "Burned in auctions")) : null,
+        res.burned ? h("div", null, h("span", null, "🔨"), h("b", null, naira(res.burned)), h("small", null, "Burned in auctions")) : null,
       ),
+      notReal(),
       h("button", { class: "btn big", onclick: playAgain }, "Play again"),
       friendsBlock(r),
       h(
@@ -360,7 +368,7 @@ export function play(ctx: Ctx, game: Game): () => void {
         { class: "standings" },
         res.standings.map((st) => {
           const s = r.seats.find((x) => x.id === st.id)!;
-          return h("li", { class: st.id === me.id ? "you" : "" }, h("span", null, name(st.id), s.bot ? h("small", { class: "bot" }, "bot") : null), h("b", null, formatPlay(st.bag)));
+          return h("li", { class: st.id === me.id ? "you" : "" }, h("span", null, name(st.id), s.bot ? h("small", { class: "bot" }, "bot") : null), h("b", null, naira(st.bag)));
         }),
       ),
       h(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  act, botNames, createRound, DEFAULT_CONFIG, formatPlay, leave, mulberry32, parseAction, publicView,
+  act, botNames, createRound, DEFAULT_CONFIG, formatPlay, formatPlayNaira, leave, mulberry32, parseAction, publicView,
   results, type Round, seatOf, setPresent, stepBots, tick, vote,
 } from "../src";
 
@@ -183,7 +183,12 @@ describe("bots", () => {
 });
 
 describe("helpers", () => {
-  it("formats play money without ₦", () => {
+  it("shows ₦ inside the game only", () => {
+    expect(formatPlayNaira(50e9)).toBe("₦50B");
+    expect(formatPlayNaira(-2e6)).toBe("-₦2M");
+  });
+
+  it("formats play money without ₦ for Zend surfaces", () => {
     expect(formatPlay(50e9)).toBe("50B");
     expect(formatPlay(1.5e9)).toBe("1.5B");
     expect(formatPlay(2e6)).toBe("2M");

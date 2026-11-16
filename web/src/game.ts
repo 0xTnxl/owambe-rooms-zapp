@@ -1,5 +1,5 @@
 import {
-  act, botNames, createRound, DEFAULT_CONFIG, formatPlay, type GameEvent, ITEMS, type ItemId, mulberry32,
+  act, botNames, createRound, DEFAULT_CONFIG, formatPlayNaira as formatPlay, type GameEvent, ITEMS, type ItemId, mulberry32,
   publicView, type PublicRound, type Round, setPresent, stepBots, tick, vote,
 } from "@owambe/engine";
 import { api, type Me, type RoundInfo } from "./api";

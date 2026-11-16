@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@owambe/engine": "workspace:*",
-    "@zendfi/appkit": "link:../../zend-appkit",
+    "@zendfi/appkit": "^0.6.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {

@@ -1,11 +1,11 @@
-import { formatPlay, DEFAULT_CONFIG } from "@owambe/engine";
+import { formatPlayNaira, DEFAULT_CONFIG } from "@owambe/engine";
 import { api, errorText, type LobbyView, signIn } from "../api";
 import type { Ctx } from "../ctx";
 import { PracticeGame } from "../game";
 import { avatar, h, toast } from "../h";
 import { appLink, inZend } from "../zend";
 
-const START = formatPlay(DEFAULT_CONFIG.startBag);
+const START = formatPlayNaira(DEFAULT_CONFIG.startBag);
 
 function howTo() {
   return h(
@@ -17,7 +17,8 @@ function howTo() {
   );
 }
 
-const playMoneyNote = () => h("p", { class: "fine" }, "Play money only. It's worth nothing outside a round.");
+const playMoneyNote = () =>
+  h("p", { class: "fine" }, "The ₦ in Owambe is play money. It isn't real, has no value outside a round, and can't be cashed out, sold or sent.");
 
 export async function playOrToast(ctx: Ctx, body: Record<string, unknown>, path = "/api/play"): Promise<void> {
   try {
