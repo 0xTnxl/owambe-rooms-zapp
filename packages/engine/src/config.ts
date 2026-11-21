@@ -17,6 +17,9 @@ export const ITEMS: readonly Item[] = [
   { id: "jet", name: "Private jet", emoji: "🛩️", price: 20_000_000_000 },
 ];
 
+/** Face value of one note in a spray (a spray is `sprayAmount / NOTE_VALUE` notes). */
+export const NOTE_VALUE = 1_000_000;
+
 export function itemById(id: unknown): Item | undefined {
   return ITEMS.find((i) => i.id === id);
 }
@@ -43,6 +46,10 @@ export interface Config {
   resultsMs: number;
   /** Most gifts in a row to the same person. */
   cap: number;
+  /** Play money in one spray: a wad of ₦1M notes, thrown with one flick. */
+  sprayAmount: number;
+  /** Most play money sprayed in a row on the same person before you have to spray someone else. */
+  sprayCap: number;
   /** When each auction opens, as a share of play time. */
   auctionAt: number[];
   auctionMs: number;
@@ -60,6 +67,8 @@ export const DEFAULT_CONFIG: Config = {
   voteMs: 20_000,
   resultsMs: 45_000,
   cap: 5,
+  sprayAmount: 500_000_000,
+  sprayCap: 10_000_000_000,
   auctionAt: [0.35, 0.7],
   auctionMs: 10_000,
   minBid: 1_000_000_000,

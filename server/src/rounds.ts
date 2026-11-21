@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import {
-  act, botNames, createRound, type GameEvent, leave, mulberry32, parseAction, publicView, type Rng,
+  act, botNames, createRound, encodeLook, type GameEvent, leave, mulberry32, parseAction, publicView, randomLook, type Rng,
   type Round, type SeatInit, setPresent, stepBots, tick, vote,
 } from "@owambe/engine";
 import type { ServerConfig } from "./config";
@@ -208,7 +208,7 @@ export class RoundRunner {
     this.send({
       t: "ev", v: ++this.v, now, ev: this.pending, added: this.newAdds,
       phase: v.phase, lead: v.lead, loserId: v.loserId, auction: v.auction, auctionsLeft: v.auctionsLeft, voted: v.voted,
-      seats: v.seats.map((s) => ({ id: s.id, bag: s.bag, given: s.given, away: s.away, streakTo: s.streakTo, streakN: s.streakN })),
+      seats: v.seats.map((s) => ({ id: s.id, bag: s.bag, given: s.given, away: s.away, streakTo: s.streakTo, streakN: s.streakN, sprayRun: s.sprayRun })),
     }, now);
     this.pending = [];
     this.newAdds = [];
@@ -267,7 +267,7 @@ export class Rounds {
     const names = botNames(rng, botCount, p.humans.map((h) => h.name));
     const seats: SeatInit[] = [
       ...p.humans.map((h) => ({ id: h.id, name: h.name, avatar: h.avatar })),
-      ...names.map((name, i) => ({ id: `bot_${i}`, name, avatar: null, bot: true })),
+      ...names.map((name, i) => ({ id: `bot_${i}`, name, avatar: null, bot: true, look: encodeLook(randomLook(rng)) })),
     ];
     // Mix bots in so seat order doesn't give them away.
     seats.sort(() => rng() - 0.5);

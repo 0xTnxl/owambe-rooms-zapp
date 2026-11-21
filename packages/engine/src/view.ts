@@ -11,6 +11,8 @@ export interface PublicSeat {
   away: boolean;
   streakTo: string | null;
   streakN: number;
+  sprayRun: number;
+  look: string | null;
   gave: Record<string, number>;
 }
 
@@ -31,6 +33,8 @@ export interface PublicRound {
   voteEnd: number;
   resultsEnd: number;
   cap: number;
+  sprayAmount: number;
+  sprayCap: number;
   minBid: number;
   bidStep: number;
   seats: PublicSeat[];
@@ -49,10 +53,10 @@ export function publicView(r: Round, now: number, opts: { labelBots: boolean } =
   return {
     id: r.id, phase: r.phase, now,
     playStart: r.playStart, playEnd: r.playEnd, voteEnd: r.voteEnd, resultsEnd: r.resultsEnd,
-    cap: r.cfg.cap, minBid: r.cfg.minBid, bidStep: r.cfg.bidStep,
+    cap: r.cfg.cap, sprayAmount: r.cfg.sprayAmount, sprayCap: r.cfg.sprayCap, minBid: r.cfg.minBid, bidStep: r.cfg.bidStep,
     seats: r.seats.map((s) => ({
       id: s.id, name: s.name, avatar: s.avatar, bot: reveal && s.bot, bag: s.bag, given: s.given,
-      away: s.away, streakTo: s.streakTo, streakN: s.streakN, gave: s.gave,
+      away: s.away, streakTo: s.streakTo, streakN: s.streakN, sprayRun: s.sprayRun, look: s.look, gave: s.gave,
     })),
     auction: a ? { idx: a.idx, lot: a.lot, closesAt: a.closesAt, high: a.high } : null,
     auctionsLeft: r.auctions.filter((x) => x.state !== "closed").length,

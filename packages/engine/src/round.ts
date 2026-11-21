@@ -9,6 +9,8 @@ export interface SeatInit {
   name: string;
   avatar: string | null;
   bot?: boolean;
+  /** Outfit code (see `look.ts`). Cosmetic only; never affects the rules. */
+  look?: string | null;
 }
 
 export interface Seat {
@@ -23,9 +25,13 @@ export interface Seat {
   burned: number;
   /** Order of the last time this seat received play money (0 = never). Breaks ties. */
   recvSeq: number;
-  /** Gifts in a row from this seat to `streakTo`. */
+  look: string | null;
+  /** Who this seat last gifted or sprayed. */
   streakTo: string | null;
+  /** Item gifts in a row to `streakTo`. */
   streakN: number;
+  /** Play money sprayed in a row on `streakTo`. */
+  sprayRun: number;
   present: boolean;
   away: boolean;
   absentSince: number | null;
@@ -77,12 +83,14 @@ export interface Round {
 
 export type Action =
   | { t: "gift"; to: string; item: ItemId }
+  | { t: "spray"; to: string }
   | { t: "bid"; amount: number }
   | { t: "react"; r: string };
 
 export type GameEvent =
   | { k: "phase"; phase: Phase }
   | { k: "gift"; from: string; to: string; item: ItemId; amount: number }
+  | { k: "spray"; from: string; to: string; amount: number }
   | { k: "auction"; idx: number; state: "open" | "closed"; lot: string; closesAt: number; winner: string | null; amount: number }
   | { k: "bid"; idx: number; seat: string; amount: number }
   | { k: "react"; seat: string; r: string }
@@ -91,7 +99,7 @@ export type GameEvent =
 
 export type ErrorCode =
   | "NO_SEAT" | "NOT_PLAYING" | "NOT_VOTING" | "NO_ITEM" | "NO_SUCH_PERSON" | "SELF" | "AWAY"
-  | "CAP_REACHED" | "NOT_ENOUGH" | "NO_AUCTION" | "TOO_LOW" | "ALREADY_TOP" | "BAD_REACTION"
+  | "CAP_REACHED" | "SPRAY_CAP" | "NOT_ENOUGH" | "NO_AUCTION" | "TOO_LOW" | "ALREADY_TOP" | "BAD_REACTION"
   | "SLOW_DOWN" | "BAD_ACTION";
 
 export type ActResult = { ok: true; events: GameEvent[] } | { ok: false; code: ErrorCode };
@@ -116,7 +124,8 @@ export function createRound(id: string, cfg: Config, seats: SeatInit[], now: num
         id: s.id, name: s.name, avatar: s.avatar, bot,
         style: bot ? STYLES[(styleOffset + botN++) % STYLES.length]! : null,
         bag: cfg.startBag, given: 0, received: 0, burned: 0, recvSeq: 0,
-        streakTo: null, streakN: 0,
+        look: s.look ?? null,
+        streakTo: null, streakN: 0, sprayRun: 0,
         present: bot, away: false, absentSince: bot ? null : now, left: false,
         lastReactAt: 0,
         nextBotAt: playStart + 300 + Math.floor(rng() * 1200),
@@ -158,6 +167,9 @@ export function parseAction(data: unknown): Action | null {
   if (d.t === "gift" && typeof d.to === "string" && d.to.length <= 64 && itemById(d.item)) {
     return { t: "gift", to: d.to, item: d.item as ItemId };
   }
+  if (d.t === "spray" && typeof d.to === "string" && d.to.length <= 64) {
+    return { t: "spray", to: d.to };
+  }
   if (d.t === "bid" && typeof d.amount === "number" && Number.isSafeInteger(d.amount) && d.amount > 0) {
     return { t: "bid", amount: d.amount };
   }
@@ -183,27 +195,36 @@ export function act(r: Round, seatId: string, a: Action, now: number): ActResult
   }
   if (r.phase !== "playing") return fail("NOT_PLAYING");
 
-  if (a.t === "gift") {
-    const item = itemById(a.item);
-    if (!item) return fail("NO_ITEM");
+  if (a.t === "gift" || a.t === "spray") {
+    const item = a.t === "gift" ? itemById(a.item) : undefined;
+    if (a.t === "gift" && !item) return fail("NO_ITEM");
+    const amount = item ? item.price : r.cfg.sprayAmount;
     const to = seatOf(r, a.to);
     if (!to) return fail("NO_SUCH_PERSON");
     if (to.id === s.id) return fail("SELF");
     if (to.away) return fail("AWAY");
-    if (s.streakTo === to.id && s.streakN >= r.cfg.cap) return fail("CAP_REACHED");
-    if (available(r, s) < item.price) return fail("NOT_ENOUGH");
-    s.bag -= item.price;
-    s.given += item.price;
-    s.gave[to.id] = (s.gave[to.id] ?? 0) + item.price;
-    to.bag += item.price;
-    to.received += item.price;
+    const same = s.streakTo === to.id;
+    if (item && same && s.streakN >= r.cfg.cap) return fail("CAP_REACHED");
+    if (!item && same && s.sprayRun + amount > r.cfg.sprayCap) return fail("SPRAY_CAP");
+    if (available(r, s) < amount) return fail("NOT_ENOUGH");
+    s.bag -= amount;
+    s.given += amount;
+    s.gave[to.id] = (s.gave[to.id] ?? 0) + amount;
+    to.bag += amount;
+    to.received += amount;
     to.recvSeq = ++r.recvCounter;
-    if (s.streakTo === to.id) s.streakN += 1;
-    else {
+    if (!same) {
       s.streakTo = to.id;
-      s.streakN = 1;
+      s.streakN = 0;
+      s.sprayRun = 0;
     }
-    events.push({ k: "gift", from: s.id, to: to.id, item: item.id, amount: item.price });
+    if (item) {
+      s.streakN += 1;
+      events.push({ k: "gift", from: s.id, to: to.id, item: item.id, amount });
+    } else {
+      s.sprayRun += amount;
+      events.push({ k: "spray", from: s.id, to: to.id, amount });
+    }
     return { ok: true, events };
   }
 

@@ -4,3 +4,4 @@ export * from "./rng";
 export * from "./round";
 export * from "./bots";
 export * from "./view";
+export * from "./look";

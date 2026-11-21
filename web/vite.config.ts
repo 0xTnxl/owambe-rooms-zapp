@@ -4,7 +4,8 @@ import { defineConfig } from "vite";
 const server = process.env.OWAMBE_SERVER ?? "http://localhost:8787";
 
 export default defineConfig({
-  build: { target: "es2020", cssCodeSplit: false, assetsInlineLimit: 0, reportCompressedSize: false },
+  // The party chunk (three.js) is big by design and loads on demand; scripts/size.mjs holds the budget.
+  build: { target: "es2020", cssCodeSplit: false, assetsInlineLimit: 0, reportCompressedSize: false, chunkSizeWarningLimit: 700 },
   server: {
     port: 5173,
     proxy: {

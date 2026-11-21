@@ -28,13 +28,42 @@ export function botAction(r: Round, bot: Seat, rng: Rng, now: number): Action | 
   }
 
   if (bot.style === "sneaky" && rng() < 0.35) return null;
+  // Bots pace themselves: they keep back a share of the start bag in step with the time left, so
+  // the room stays a contest to the end instead of dumping everything in the first half minute.
+  const left = Math.max(0, Math.min(1, (r.playEnd - now) / r.cfg.playMs));
+  const reserve = r.cfg.startBag * left * (bot.style === "chaotic" ? 0.35 : 0.5);
+  const spend = Math.max(0, Math.min(available(r, bot), bot.bag - reserve));
+  // Holding far more than the start? Panic: big gifts, not little sprays.
+  const panic = bot.bag > r.cfg.startBag * 1.3;
+
+  // Spraying: small wads, often, mostly on whoever holds the most. Keeps the floor busy.
+  const sprayP = panic ? 0.15 : bot.style === "eager" ? 0.45 : bot.style === "sneaky" ? 0.3 : 0.4;
+  if (spend >= r.cfg.sprayAmount && rng() < sprayP) {
+    const canSpray = r.seats.filter(
+      (s) => s.id !== bot.id && !s.away && !(bot.streakTo === s.id && bot.sprayRun + r.cfg.sprayAmount > r.cfg.sprayCap),
+    );
+    const sorted = [...canSpray].sort((a, b) => b.bag - a.bag);
+    // Mostly the biggest bag, but not always: a room where everyone sprays one person goes quiet fast.
+    const to = bot.style === "chaotic" ? pick(rng, canSpray) : rng() < 0.45 ? sorted[0] : pick(rng, canSpray);
+    if (to) return { t: "spray", to: to.id };
+  }
+
   const targets = r.seats.filter(
     (s) => s.id !== bot.id && !s.away && !(bot.streakTo === s.id && bot.streakN >= r.cfg.cap),
   );
   if (!targets.length) return null;
-  const spend = available(r, bot);
   const affordable = ITEMS.filter((i) => i.price <= spend);
-  if (!affordable.length) return null;
+  if (!affordable.length) {
+    // Nothing big fits the budget: a spray, when one fits the real bag.
+    const to = pick(rng, targets.filter((s) => !(bot.streakTo === s.id && bot.sprayRun + r.cfg.sprayAmount > r.cfg.sprayCap)));
+    return to && available(r, bot) >= r.cfg.sprayAmount && rng() < 0.12 ? { t: "spray", to: to.id } : null;
+  }
+
+  if (panic) {
+    // The biggest thing it can afford, on whoever has least (they're the least likely to send it back).
+    const poorest = [...targets].sort((a, b) => a.bag - b.bag);
+    return { t: "gift", to: (rng() < 0.6 ? poorest[0] : pick(rng, targets))!.id, item: affordable[affordable.length - 1]!.id };
+  }
 
   if (bot.style === "eager") {
     const leader = [...targets].sort((a, b) => b.bag - a.bag)[0]!;
@@ -53,11 +82,14 @@ export function stepBots(r: Round, rng: Rng, now: number): GameEvent[] {
   const out: GameEvent[] = [];
   for (const bot of r.seats) {
     if (!bot.bot || now < bot.nextBotAt) continue;
-    bot.nextBotAt = now + 600 + Math.floor(rng() * 800);
+    // A bot sitting on a big bag thinks faster.
+    bot.nextBotAt = now + (bot.bag > r.cfg.startBag * 1.3 ? 300 + Math.floor(rng() * 400) : 600 + Math.floor(rng() * 800));
     const a = botAction(r, bot, rng, now);
     if (!a) continue;
     const res = act(r, bot.id, a, now);
     if (res.ok) out.push(...res.events);
+    // A spray is a flick, not a decision: the next one comes quickly.
+    if (res.ok && a.t === "spray") bot.nextBotAt = now + 350 + Math.floor(rng() * 450);
   }
   return out;
 }

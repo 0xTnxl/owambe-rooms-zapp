@@ -1,7 +1,13 @@
+import "@fontsource/geist-sans/latin-300.css";
+import "@fontsource/geist-sans/latin-400.css";
+import "@fontsource/geist-sans/latin-600.css";
+import "@fontsource/geist-sans/latin-700.css";
 import "./style.css";
 import { api, errorText, hasSession, type LobbyView, type Me, setSession, signIn } from "./api";
 import type { Ctx, Screen } from "./ctx";
-import { OnlineGame } from "./game";
+import { OnlineGame, PracticeGame } from "./game";
+import { loadParty } from "./lazy";
+import { myLookCode } from "./outfit";
 import { h, toast } from "./h";
 import { home, landing, playOrToast } from "./screens/home";
 import { lobby } from "./screens/lobby";
@@ -35,6 +41,33 @@ const ctx: Ctx = {
       case "play":
         cleanup = play(ctx, s.game);
         break;
+      case "party":
+      case "practice":
+      case "dressup": {
+        // The 3D party loads on demand. Until it arrives, a short "setting up" screen.
+        let live = true;
+        let inner: () => void = () => {};
+        cleanup = () => {
+          live = false;
+          inner();
+        };
+        root.replaceChildren(h("section", { class: "screen loading" }, h("div", { class: "logo bounce" }, "🪩"), h("p", { class: "status" }, "Setting up the party…")));
+        void loadParty().then((p) => {
+          if (!live) return;
+          if (s.kind === "dressup") {
+            if (!p.webglOk()) return ctx.go(s.then);
+            inner = p.dressUp(ctx, s.then);
+            return;
+          }
+          // Practice rounds start only now, so the clock doesn't run while the page loads.
+          const game = s.kind === "practice" ? new PracticeGame(s.me, myLookCode()) : s.game;
+          // Old phone or no GPU: the same round, as cards.
+          inner = p.webglOk() ? p.partyScreen(ctx, game) : play(ctx, game);
+        }).catch(() => {
+          if (live) ctx.go({ kind: "message", title: "Couldn't load the party", text: "Check your connection and try again.", retry: () => ctx.go(s) });
+        });
+        break;
+      }
       case "message":
         root.replaceChildren(
           h("section", { class: "screen" }, h("div", { class: "logo" }, "🎉"), h("h2", null, s.title), h("p", { class: "status" }, s.text),

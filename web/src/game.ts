@@ -1,6 +1,6 @@
 import {
-  act, botNames, createRound, DEFAULT_CONFIG, formatPlayNaira as formatPlay, type GameEvent, ITEMS, type ItemId, mulberry32,
-  publicView, type PublicRound, type Round, setPresent, stepBots, tick, vote,
+  act, botNames, createRound, DEFAULT_CONFIG, encodeLook, formatPlayNaira as formatPlay, type GameEvent, ITEMS, type ItemId,
+  mulberry32, publicView, type PublicRound, randomLook, type Round, setPresent, stepBots, tick, vote,
 } from "@owambe/engine";
 import { api, type Me, type RoundInfo } from "./api";
 import { first } from "./h";
@@ -31,8 +31,11 @@ export interface Game {
   readonly roundId: string;
   readonly state: GameState;
   subscribe(fn: () => void): () => void;
+  /** Every game event as it happens (gifts, sprays, bids…), for the party scene to act out. */
+  onEvents(fn: (ev: GameEvent[]) => void): () => void;
   now(): number;
   gift(to: string, item: ItemId): void;
+  spray(to: string): void;
   bid(amount: number): void;
   react(r: string): void;
   vote(forId: string): Promise<boolean>;
@@ -46,6 +49,7 @@ export interface Game {
 
 const ERRORS: Record<string, string> = {
   CAP_REACHED: "That's 5 in a row to them. Gift someone else first.",
+  SPRAY_CAP: "You've sprayed them plenty. Spray someone else first.",
   NOT_ENOUGH: "Your bag can't cover that.",
   AWAY: "They stepped out.",
   TOO_LOW: "Someone bid more. Go higher.",
@@ -81,6 +85,7 @@ class Base {
     round: null, offset: 0, feed: [], floats: new Map(), error: null, added: [], humans: [], code: null, connection: "connected",
   };
   private subs = new Set<() => void>();
+  private evSubs = new Set<(ev: GameEvent[]) => void>();
   private errTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(readonly me: Me) {}
@@ -88,6 +93,11 @@ class Base {
   subscribe(fn: () => void) {
     this.subs.add(fn);
     return () => this.subs.delete(fn);
+  }
+
+  onEvents(fn: (ev: GameEvent[]) => void) {
+    this.evSubs.add(fn);
+    return () => this.evSubs.delete(fn);
   }
 
   protected emit(): void {
@@ -117,6 +127,7 @@ class Base {
       if (text) this.state.feed.unshift({ at: now, text });
     }
     this.state.feed.length = Math.min(this.state.feed.length, 4);
+    if (ev.length) for (const fn of this.evSubs) fn(ev);
   }
 }
 
@@ -227,6 +238,9 @@ export class OnlineGame extends Base implements Game {
   gift(to: string, item: ItemId) {
     this.send({ t: "gift", to, item });
   }
+  spray(to: string) {
+    this.send({ t: "spray", to });
+  }
   bid(amount: number) {
     this.send({ t: "bid", amount });
   }
@@ -270,13 +284,16 @@ export class PracticeGame extends Base implements Game {
   private timer: ReturnType<typeof setInterval>;
   private rng = mulberry32((Math.random() * 2 ** 31) | 0);
 
-  constructor(me: Me) {
+  constructor(me: Me, look: string | null = null, cfg: Partial<typeof DEFAULT_CONFIG> = {}) {
     super(me);
     const seed = (Math.random() * 2 ** 31) | 0;
     const names = botNames(this.rng, 5, [me.name]);
-    const seats = [{ id: me.id, name: me.name, avatar: me.avatar }, ...names.map((n, i) => ({ id: `bot_${i}`, name: n, avatar: null, bot: true }))];
+    const seats = [
+      { id: me.id, name: me.name, avatar: me.avatar, look },
+      ...names.map((n, i) => ({ id: `bot_${i}`, name: n, avatar: null, bot: true, look: encodeLook(randomLook(this.rng)) })),
+    ];
     seats.sort(() => this.rng() - 0.5);
-    this.round = createRound("practice", { ...DEFAULT_CONFIG, readyMs: 3_000, playMs: 90_000, voteMs: 15_000, resultsMs: 600_000 }, seats, Date.now(), seed);
+    this.round = createRound("practice", { ...DEFAULT_CONFIG, readyMs: 3_000, playMs: 90_000, voteMs: 15_000, resultsMs: 600_000, ...cfg }, seats, Date.now(), seed);
     setPresent(this.round, me.id, true, Date.now());
     this.state.humans = [me.id];
     this.sync();
@@ -307,6 +324,9 @@ export class PracticeGame extends Base implements Game {
 
   gift(to: string, item: ItemId) {
     this.run({ t: "gift", to, item });
+  }
+  spray(to: string) {
+    this.run({ t: "spray", to });
   }
   bid(amount: number) {
     this.run({ t: "bid", amount });
